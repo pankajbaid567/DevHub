@@ -1,0 +1,36 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <circle cx="20" cy="20" r="20" fill="url(#gradient1)"/>
+  
+  <!-- Code brackets representing development -->
+  <path d="M12 14L8 18L12 22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28 14L32 18L28 22" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Central hub/network symbol -->
+  <circle cx="20" cy="20" r="4" fill="white"/>
+  <circle cx="20" cy="20" r="2" fill="url(#gradient2)"/>
+  
+  <!-- Connecting lines representing community -->
+  <path d="M20 16L20 12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M20 24L20 28" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M16 20L12 20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M24 20L28 20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Diagonal connections for network effect -->
+  <path d="M16 16L12 12" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+  <path d="M24 16L28 12" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+  <path d="M16 24L12 28" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+  <path d="M24 24L28 28" stroke="white" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+  
+  <!-- Gradients -->
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EF4444;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

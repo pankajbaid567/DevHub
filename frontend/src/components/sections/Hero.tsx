@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Users, Code2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
+import DevHubLogoLarge from "@/assets/logo-large.svg";
 
 const Hero = () => {
   return (
@@ -14,10 +15,18 @@ const Hero = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div className="text-left space-y-8">
-            <div className="space-y-4">
-              <div className="inline-flex items-center px-4 py-2 bg-gradient-primary/10 rounded-full border border-primary/20">
-                <Code2 className="w-4 h-4 text-primary mr-2" />
-                <span className="text-sm font-medium text-primary">Your All-in-One Developer Hub</span>
+            <div className="space-y-6">
+              {/* Logo */}
+              <div className="flex items-center gap-4">
+                <img 
+                  src={DevHubLogoLarge} 
+                  alt="DevHub+ Logo" 
+                  className="h-16 w-16 hover:scale-105 transition-transform duration-300"
+                />
+                <div className="inline-flex items-center px-4 py-2 bg-gradient-primary/10 rounded-full border border-primary/20">
+                  <Code2 className="w-4 h-4 text-primary mr-2" />
+                  <span className="text-sm font-medium text-primary">Your All-in-One Developer Hub</span>
+                </div>
               </div>
               
               <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
