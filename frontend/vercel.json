@@ -1,0 +1,5 @@
+{
+  "env": {
+    "VITE_BACKEND_URL": "https://devhub-production-ed42.up.railway.app"
+  }
+}
