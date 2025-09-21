@@ -3,6 +3,11 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL
   ? `${import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '')}/api` 
   : 'http://localhost:3000/api';
 
+// Debug logging
+console.log('🔧 API Configuration Debug:');
+console.log('VITE_BACKEND_URL:', import.meta.env.VITE_BACKEND_URL);
+console.log('API_BASE_URL:', API_BASE_URL);
+
 // Default headers
 const getHeaders = () => {
   const token = localStorage.getItem('authToken');
