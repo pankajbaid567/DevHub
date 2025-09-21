@@ -2,8 +2,9 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
 
 class StudyRoomService {
   constructor() {
-    // Check if API_BASE_URL already includes /api
-    const baseURL = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+    // Clean the URL and ensure proper /api path
+    const cleanURL = API_BASE_URL.replace(/\/$/, ''); // Remove trailing slash
+    const baseURL = cleanURL.endsWith('/api') ? cleanURL : `${cleanURL}/api`;
     this.baseURL = `${baseURL}/study-rooms`;
   }
 

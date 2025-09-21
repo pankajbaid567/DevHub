@@ -58,7 +58,7 @@ class WebRTCService {
     this.onUserSpeaking = callbacks.onUserSpeaking;
 
     // Connect to Socket.IO server with Google Meet-style configuration
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+    const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000').replace(/\/$/, '');
     console.log('🔗 Connecting to backend:', backendUrl);
     
     this.socket = io(backendUrl, {
