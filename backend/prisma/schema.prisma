@@ -1,0 +1,439 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    Int      @id @default(autoincrement())
+  username              String   @unique
+  email                 String   @unique
+  password              String?  // Make optional for existing users
+  fullName              String?
+  bio                   String?
+  profilePicture        String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt @default(now()) // Add default
+  
+  // Relations
+  sessions              Session[]             @relation("UserSessions")
+  participantSessions   SessionParticipant[]  @relation("UserSessionParticipants")
+  messages              Message[]
+  questions             Question[]
+  answers               Answer[]
+  skillRatings          SkillRating[]
+  snippets              Snippet[]
+  resumes               Resume[]
+  mentorConversations   MentorConversation[]  @relation("UserMentorConversations")
+  recordings            Recording[]           @relation("UserRecordings")
+  createdStudyRooms     StudyRoom[]          @relation("CreatedStudyRooms")
+  studyRoomParticipations StudyRoomParticipant[] @relation("StudyRoomParticipants")
+  createdBoards         CollaborativeBoard[] @relation("CreatedBoards")
+  boardCollaborations   BoardCollaborator[]  @relation("BoardCollaborations")
+  
+  // DevSocial Relations
+  posts                 Post[]               @relation("UserPosts")
+  likes                 Like[]               @relation("UserLikes")
+  comments              Comment[]            @relation("UserComments")
+  shares                Share[]              @relation("UserShares")
+  followers             Follow[]             @relation("UserFollowers")
+  following             Follow[]             @relation("UserFollowing")
+  developerProfile      DeveloperProfile?    @relation("UserDeveloperProfile")
+  notifications         Notification[]       @relation("UserNotifications")
+  
+  // Room Relations
+  ownedRooms            Room[]               @relation("RoomOwner")
+  roomParticipations    RoomParticipant[]    @relation("RoomParticipant")
+
+  @@map("users")
+}
+
+model Question {
+  id        Int       @id @default(autoincrement())
+  title     String
+  body      String
+  tags      String[]
+  createdAt DateTime  @default(now())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  answers   Answer[]
+
+  @@map("questions")
+}
+
+model Answer {
+  id         Int      @id @default(autoincrement())
+  body       String
+  createdAt  DateTime @default(now())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id])
+
+  @@map("answers")
+}
+
+model Snippet {
+  id        Int      @id @default(autoincrement())
+  title     String
+  code      String
+  language  String
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("snippets")
+}
+
+model Resume {
+  id            Int      @id @default(autoincrement())
+  title         String?  // Make optional for existing records
+  content       String?  @db.Text // Make optional for existing records
+  fileUrl       String?  // Keep old field for compatibility
+  parsedData    Json?    // Parsed resume information
+  atsScore      Int?     // ATS compatibility score
+  aiFeedback    Json?    // AI-generated feedback
+  companyName   String?  // Target company
+  jobTitle      String?  // Target job title
+  jobDescription String? @db.Text // Target job description
+  review        String?  // Manual review
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @default(now())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@map("resumes")
+}
+
+model SkillRating {
+  id        Int      @id @default(autoincrement())
+  skillName String
+  rating    Int
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("skill_ratings")
+}
+
+model Session {
+  id              Int                   @id @default(autoincrement())
+  title           String
+  description     String?
+  language        String                @default("javascript")
+  sessionType     String                @default("live-coding")
+  privacy         String                @default("public")
+  maxParticipants Int                   @default(20)
+  duration        Int                   @default(60)
+  tags            String[]
+  status          String                @default("scheduled") // scheduled, live, completed
+  code            String?
+  scheduledFor    DateTime?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  studyRoomId     Int?                  // Optional: Link to study room
+  isRecording     Boolean               @default(false)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt @default(now())
+  hostUserId      Int
+  hostUser        User                  @relation("UserSessions", fields: [hostUserId], references: [id])
+  studyRoom       StudyRoom?            @relation("StudyRoomSessions", fields: [studyRoomId], references: [id])
+  messages        Message[]
+  participants    SessionParticipant[]
+  recordings      Recording[]
+
+  @@map("sessions")
+}
+
+model SessionParticipant {
+  id        Int      @id @default(autoincrement())
+  sessionId Int
+  userId    Int
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserSessionParticipants", fields: [userId], references: [id])
+
+  @@unique([sessionId, userId])
+  @@map("session_participants")
+}
+
+model MentorConversation {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  topic     String   @default("general") // e.g., "debugging", "learning", "career", "code-review"
+  question  String?
+  code      String?  // Code snippet for review/analysis
+  response  String
+  modelUsed String?  // Which AI model was used
+  createdAt DateTime @default(now())
+  user      User     @relation("UserMentorConversations", fields: [userId], references: [id])
+
+  @@map("mentor_conversations")
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  sessionId Int
+  session   Session  @relation(fields: [sessionId], references: [id])
+
+  @@map("messages")
+}
+
+model Recording {
+  id          Int      @id @default(autoincrement())
+  sessionId   Int
+  fileName    String   // Path in R2 storage
+  fileSize    BigInt   // File size in bytes
+  duration    Int      // Duration in seconds
+  uploadedBy  Int
+  participants Int     @default(1)
+  status      String   @default("processing") // processing, completed, failed
+  createdAt   DateTime @default(now())
+  
+  session     Session  @relation(fields: [sessionId], references: [id])
+  uploader    User     @relation("UserRecordings", fields: [uploadedBy], references: [id])
+
+  @@map("recordings")
+}
+
+model StudyRoom {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  subject     String   // e.g., "JavaScript", "DSA", "System Design"
+  isPublic    Boolean  @default(true)
+  maxCapacity Int      @default(10)
+  createdBy   Int
+  inviteCode  String?  @unique // For private rooms
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  creator     User           @relation("CreatedStudyRooms", fields: [createdBy], references: [id])
+  participants StudyRoomParticipant[]
+  sessions    Session[]      @relation("StudyRoomSessions")
+
+  @@map("study_rooms")
+}
+
+model StudyRoomParticipant {
+  id         Int      @id @default(autoincrement())
+  studyRoomId Int
+  userId     Int
+  joinedAt   DateTime @default(now())
+  role       String   @default("participant") // participant, moderator
+  
+  studyRoom  StudyRoom @relation(fields: [studyRoomId], references: [id])
+  user       User      @relation("StudyRoomParticipants", fields: [userId], references: [id])
+
+  @@unique([studyRoomId, userId])
+  @@map("study_room_participants")
+}
+
+model CollaborativeBoard {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  boardData   Json     // Canvas data (drawings, shapes, etc.)
+  isPublic    Boolean  @default(false)
+  createdBy   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  creator     User     @relation("CreatedBoards", fields: [createdBy], references: [id])
+  collaborators BoardCollaborator[]
+
+  @@map("collaborative_boards")
+}
+
+model BoardCollaborator {
+  id        Int      @id @default(autoincrement())
+  boardId   Int
+  userId    Int
+  role      String   @default("editor") // viewer, editor, admin
+  joinedAt  DateTime @default(now())
+  
+  board     CollaborativeBoard @relation(fields: [boardId], references: [id])
+  user      User               @relation("BoardCollaborations", fields: [userId], references: [id])
+
+  @@unique([boardId, userId])
+  @@map("board_collaborators")
+}
+
+// DevSocial Platform Models
+model Post {
+  id          Int      @id @default(autoincrement())
+  content     String
+  imageUrl    String?
+  codeSnippet String?
+  language    String?  // Programming language for code snippets
+  tags        String[] // Hashtags
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  authorId    Int
+  
+  author      User     @relation("UserPosts", fields: [authorId], references: [id])
+  likes       Like[]
+  comments    Comment[]
+  shares      Share[]
+
+  @@map("posts")
+}
+
+model Like {
+  id     Int @id @default(autoincrement())
+  postId Int
+  userId Int
+  createdAt DateTime @default(now())
+  
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user   User @relation("UserLikes", fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@map("likes")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  postId    Int
+  userId    Int
+  parentId  Int?     // For nested comments
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserComments", fields: [userId], references: [id])
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+model Share {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserShares", fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@map("shares")
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+  
+  follower    User     @relation("UserFollowers", fields: [followerId], references: [id])
+  following   User     @relation("UserFollowing", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+model DeveloperProfile {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @unique
+  title         String?  // e.g., "Senior Frontend Developer"
+  company       String?
+  location      String?
+  website       String?
+  githubUrl     String?
+  linkedinUrl   String?
+  leetcodeId    String?
+  codeforcesId  String?
+  gfgId         String?
+  bio           String?
+  skills        String[] // Programming languages, frameworks, etc.
+  experience    Int?     // Years of experience
+  isPublic      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  user          User     @relation("UserDeveloperProfile", fields: [userId], references: [id])
+  achievements  Achievement[]
+
+  @@map("developer_profiles")
+}
+
+model Achievement {
+  id          Int      @id @default(autoincrement())
+  profileId   Int
+  title       String   // e.g., "LeetCode 1000+ Problems Solved"
+  description String?
+  icon        String?  // Icon URL or name
+  earnedAt    DateTime @default(now())
+  
+  profile     DeveloperProfile @relation(fields: [profileId], references: [id])
+
+  @@map("achievements")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String   // like, comment, follow, mention, etc.
+  title     String
+  message   String
+  data      Json?    // Additional data (post ID, user ID, etc.)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      User     @relation("UserNotifications", fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// Collaboration Room Models
+model Room {
+  id                String             @id
+  name              String
+  description       String?
+  ownerId           Int
+  isPublic          Boolean            @default(false)
+  maxParticipants   Int                @default(10)
+  whiteboardData    String             @default("[]") @db.Text
+  stickyNotes       String             @default("[]") @db.Text
+  chatMessages      String             @default("[]") @db.Text
+  settings          Json?              // Room settings (theme, permissions, etc.)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  owner             User               @relation("RoomOwner", fields: [ownerId], references: [id])
+  participants      RoomParticipant[]
+
+  @@map("rooms")
+}
+
+model RoomParticipant {
+  id        Int      @id @default(autoincrement())
+  roomId    String
+  userId    Int
+  role      String   @default("PARTICIPANT") // OWNER, MODERATOR, PARTICIPANT
+  joinedAt  DateTime @default(now())
+  
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation("RoomParticipant", fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+  @@map("room_participants")
+}
