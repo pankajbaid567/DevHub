@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FileUpload from "@/components/FileUpload";
 import ResumeAnalysisResults from "@/components/ResumeAnalysisResults";
 import { useState } from "react";
@@ -12,7 +13,10 @@ import {
   Star,
   AlertCircle,
   Loader2,
-  Settings
+  Settings,
+  FileText,
+  Upload,
+  Type
 } from "lucide-react";
 import pdfParser from "@/services/pdfParser";
 import geminiService from "@/services/geminiService";
@@ -26,6 +30,8 @@ const ResumeAnalyzer = () => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [analysisStage, setAnalysisStage] = useState("");
   const [error, setError] = useState("");
+  const [manualText, setManualText] = useState("");
+  const [activeTab, setActiveTab] = useState("upload");
   const { toast } = useToast();
 
   const handleFileSelect = async (selectedFile: File) => {
@@ -40,10 +46,12 @@ const ResumeAnalyzer = () => {
 
   const handleAnalyze = async (fileToAnalyze?: File) => {
     const targetFile = fileToAnalyze || file;
-    if (!targetFile) {
+    
+    // Check if we have either a file or manual text
+    if (!targetFile && !manualText.trim()) {
       toast({
-        title: "No file selected",
-        description: "Please upload a resume file first.",
+        title: "No content provided",
+        description: "Please upload a resume file or enter text manually.",
         variant: "destructive"
       });
       return;
@@ -54,18 +62,32 @@ const ResumeAnalyzer = () => {
     setAnalysisResult(null);
 
     try {
-      // Step 1: Extract text from PDF
-      setAnalysisStage("Extracting text from your resume...");
-      const extractedData = await pdfParser.extractTextFromFile(targetFile);
-      
-      if (!extractedData.text || extractedData.text.trim().length < 100) {
-        throw new Error("Unable to extract sufficient text from the resume. Please ensure the PDF contains text and is not just images.");
+      let textToAnalyze = "";
+
+      if (targetFile) {
+        // Step 1: Extract text from PDF
+        setAnalysisStage("Extracting text from your resume...");
+        const extractedData = await pdfParser.extractTextFromFile(targetFile);
+        
+        if (!extractedData.text || extractedData.text.trim().length < 100) {
+          throw new Error("Unable to extract sufficient text from the resume. Please ensure the PDF contains text and is not just images, or try manual text entry.");
+        }
+        
+        textToAnalyze = extractedData.text;
+      } else {
+        // Use manual text input
+        setAnalysisStage("Processing your text...");
+        textToAnalyze = manualText.trim();
+        
+        if (textToAnalyze.length < 100) {
+          throw new Error("Please provide more detailed resume text (at least 100 characters).");
+        }
       }
 
       // Step 2: Analyze with Gemini AI
       setAnalysisStage("Analyzing resume with AI...");
       const analysis = await geminiService.analyzeResume(
-        extractedData.text,
+        textToAnalyze,
         targetRole,
         comments
       );
@@ -237,21 +259,70 @@ ${analysisResult.recommendations.map((r: any, i: number) =>
             <Card className="p-8">
               <CardHeader className="text-center pb-8">
                 <CardTitle className="text-2xl font-bold text-foreground">
-                  Upload Your Resume
+                  Analyze Your Resume
                 </CardTitle>
                 <p className="text-muted-foreground">
-                  Supported formats: PDF (Max 5MB)
+                  Upload a PDF or enter your resume text manually
                 </p>
               </CardHeader>
               
               <CardContent className="space-y-6">
-                {/* File Upload Component */}
-                <FileUpload
-                  onFileSelect={handleFileSelect}
-                  acceptedTypes={['.pdf']}
-                  maxSize={5 * 1024 * 1024}
-                  disabled={isAnalyzing}
-                />
+                {/* Tabs for Upload vs Manual Input */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="upload" className="flex items-center gap-2">
+                      <Upload className="w-4 h-4" />
+                      Upload PDF
+                    </TabsTrigger>
+                    <TabsTrigger value="manual" className="flex items-center gap-2">
+                      <Type className="w-4 h-4" />
+                      Manual Text
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="upload" className="space-y-6">
+                    <div className="text-center">
+                      <FileText className="w-12 h-12 text-primary mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Upload PDF Resume</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Supported formats: PDF (Max 5MB)
+                      </p>
+                    </div>
+                    
+                    <FileUpload
+                      onFileSelect={handleFileSelect}
+                      acceptedTypes={['.pdf']}
+                      maxSize={5 * 1024 * 1024}
+                      disabled={isAnalyzing}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="manual" className="space-y-6">
+                    <div className="text-center">
+                      <Type className="w-12 h-12 text-primary mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Enter Resume Text</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Paste your resume content directly (at least 100 characters)
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">
+                        Resume Text
+                      </label>
+                      <Textarea
+                        placeholder="Paste your resume content here... Include your name, contact info, experience, education, skills, etc."
+                        value={manualText}
+                        onChange={(e) => setManualText(e.target.value)}
+                        className="min-h-[300px] bg-input border-border text-foreground placeholder:text-muted-foreground"
+                        disabled={isAnalyzing}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Character count: {manualText.length} (minimum 100 required)
+                      </p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
 
                 {/* Target Role */}
                 <div className="space-y-2">
@@ -300,8 +371,8 @@ ${analysisResult.recommendations.map((r: any, i: number) =>
                   </Alert>
                 )}
 
-                {/* Manual Analyze Button */}
-                {file && !isAnalyzing && !analysisResult && (
+                {/* Analyze Button */}
+                {((file && activeTab === 'upload') || (manualText.trim() && activeTab === 'manual')) && !isAnalyzing && !analysisResult && (
                   <div className="text-center">
                     <Button 
                       size="lg" 
@@ -309,7 +380,7 @@ ${analysisResult.recommendations.map((r: any, i: number) =>
                       onClick={() => handleAnalyze()}
                     >
                       <Brain className="w-4 h-4 mr-2" />
-                      Re-analyze Resume
+                      {activeTab === 'upload' ? 'Analyze Resume' : 'Analyze Text'}
                     </Button>
                   </div>
                 )}
