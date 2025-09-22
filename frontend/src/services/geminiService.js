@@ -111,8 +111,22 @@ class GeminiService {
       }
 
     } catch (error) {
-      console.error('Error calling Gemini API:', error);
-      throw new Error(`Resume analysis failed: ${error.message}`);
+      console.error('❌ Error calling Gemini API:', error);
+      
+      // Handle specific API key errors
+      if (error.message.includes('API key not valid') || error.message.includes('API_KEY_INVALID')) {
+        console.error('🔑 Invalid API key detected');
+        throw new Error('Invalid Gemini API key. Please check your VITE_GEMINI_API_KEY environment variable and ensure it\'s a valid key from Google AI Studio.');
+      } else if (error.message.includes('quota') || error.message.includes('rate limit')) {
+        console.error('📊 API quota/rate limit exceeded');
+        throw new Error('Gemini API quota exceeded. Please try again later or check your API usage limits.');
+      } else if (error.message.includes('permission') || error.message.includes('forbidden')) {
+        console.error('🚫 API permission denied');
+        throw new Error('Gemini API access denied. Please check your API key permissions.');
+      } else {
+        console.error('🔧 General API error:', error.message);
+        throw new Error(`Resume analysis failed: ${error.message}. Falling back to basic analysis...`);
+      }
     }
   }
 

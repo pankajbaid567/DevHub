@@ -112,13 +112,33 @@ const ResumeAnalyzer = () => {
     } catch (error) {
       console.error('Analysis error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Analysis failed';
-      setError(errorMessage);
       
-      toast({
-        title: "Analysis Failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      // Handle specific API key errors
+      if (errorMessage.includes('Invalid Gemini API key') || errorMessage.includes('API key not valid')) {
+        setError(`🔑 ${errorMessage}. Please check your VITE_GEMINI_API_KEY environment variable. Get a free API key from Google AI Studio.`);
+        
+        toast({
+          title: "Invalid API Key",
+          description: "Please set a valid Gemini API key in your environment variables.",
+          variant: "destructive"
+        });
+      } else if (errorMessage.includes('quota') || errorMessage.includes('rate limit')) {
+        setError(`📊 ${errorMessage}. Please try again later.`);
+        
+        toast({
+          title: "API Quota Exceeded",
+          description: "Gemini API quota exceeded. Please try again later.",
+          variant: "destructive"
+        });
+      } else {
+        setError(errorMessage);
+        
+        toast({
+          title: "Analysis Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsAnalyzing(false);
       setAnalysisStage("");
@@ -397,6 +417,20 @@ ${analysisResult.recommendations.map((r: any, i: number) =>
                             Switch to the "Manual Text" tab above and paste your resume content directly. 
                             This works for any resume format and is often more reliable than PDF parsing.
                           </p>
+                        </div>
+                      )}
+                      
+                      {error.includes('Invalid Gemini API key') && (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-sm text-red-800 font-medium mb-1">🔑 API Key Issue:</p>
+                          <p className="text-sm text-red-700 mb-2">
+                            Your Gemini API key is invalid. Please check your environment variables.
+                          </p>
+                          <div className="text-xs text-red-600">
+                            <p>• Get a free API key from: <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a></p>
+                            <p>• Set VITE_GEMINI_API_KEY in your .env.local file</p>
+                            <p>• Restart your development server after setting the key</p>
+                          </div>
                         </div>
                       )}
                     </AlertDescription>
