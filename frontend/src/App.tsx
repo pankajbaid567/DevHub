@@ -13,6 +13,7 @@ import CollabBoard from "./pages/CollabBoard";
 import StudyRooms from "./pages/StudyRooms";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import VideoTest from "./components/VideoTest";
 
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/devsocial" element={<DevSocial />} />
             <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
             <Route path="/career-roadmap" element={<CareerRoadmap />} />
