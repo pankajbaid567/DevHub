@@ -67,13 +67,23 @@ const ResumeAnalyzer = () => {
       if (targetFile) {
         // Step 1: Extract text from PDF
         setAnalysisStage("Extracting text from your resume...");
-        const extractedData = await pdfParser.extractTextFromFile(targetFile);
         
-        if (!extractedData.text || extractedData.text.trim().length < 100) {
-          throw new Error("Unable to extract sufficient text from the resume. Please ensure the PDF contains text and is not just images, or try manual text entry.");
+        try {
+          const extractedData = await pdfParser.extractTextFromFile(targetFile);
+          
+          if (!extractedData.text || extractedData.text.trim().length < 100) {
+            throw new Error("Unable to extract sufficient text from the resume. Please ensure the PDF contains text and is not just images, or try manual text entry.");
+          }
+          
+          textToAnalyze = extractedData.text;
+        } catch (pdfError) {
+          console.error('PDF parsing failed:', pdfError);
+          
+          // If PDF parsing fails, suggest using manual text input
+          setError(`PDF parsing failed: ${pdfError.message}. Please try using the "Manual Text" tab to paste your resume content directly.`);
+          setActiveTab('manual'); // Switch to manual text tab
+          throw new Error(`PDF parsing failed: ${pdfError.message}. Please use the "Manual Text" tab to paste your resume content directly.`);
         }
-        
-        textToAnalyze = extractedData.text;
       } else {
         // Use manual text input
         setAnalysisStage("Processing your text...");
@@ -367,7 +377,18 @@ ${analysisResult.recommendations.map((r: any, i: number) =>
                 {error && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription>
+                      {error}
+                      {error.includes('PDF parsing failed') && (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <p className="text-sm text-blue-800 font-medium mb-1">💡 Quick Fix:</p>
+                          <p className="text-sm text-blue-700">
+                            Switch to the "Manual Text" tab above and paste your resume content directly. 
+                            This works for any resume format and is often more reliable than PDF parsing.
+                          </p>
+                        </div>
+                      )}
+                    </AlertDescription>
                   </Alert>
                 )}
 

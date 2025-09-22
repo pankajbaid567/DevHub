@@ -1,7 +1,34 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Point to the worker script from a CDN. This is crucial for it to work in a browser environment.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
+// Use a more recent version and add fallback options
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+// Alternative worker sources for better compatibility
+const workerSources = [
+  `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`,
+  `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`,
+  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+];
+
+// Try to set worker with fallback
+let workerSet = false;
+for (const source of workerSources) {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = source;
+    workerSet = true;
+    console.log(`PDF.js worker set to: ${source}`);
+    break;
+  } catch (error) {
+    console.warn(`Failed to set worker source: ${source}`, error);
+  }
+}
+
+if (!workerSet) {
+  console.warn('Could not set PDF.js worker, using default');
+  // Set a basic fallback
+  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+}
 
 /**
  * Parses a PDF file and extracts its text content.
@@ -19,20 +46,95 @@ export async function parsePdf(file) {
 
       try {
         const typedArray = new Uint8Array(event.target.result);
-        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-        let fullText = '';
+        
+        // Enhanced PDF loading options for better compatibility
+        const loadingOptions = {
+          data: typedArray,
+          verbosity: 0, // Reduce console output
+          disableAutoFetch: false,
+          disableStream: false,
+          disableRange: false,
+          useSystemFonts: true,
+          useWorkerFetch: false,
+          isEvalSupported: false,
+          disableFontFace: false,
+          disableCreateObjectURL: false
+        };
 
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map(item => ('str' in item ? item.str : '')).join(' ');
-          fullText += pageText + '\n\n'; // Add space between pages for better readability
+        // Try to add optional resources if available
+        try {
+          loadingOptions.cMapUrl = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/cmaps/`;
+          loadingOptions.cMapPacked = true;
+          loadingOptions.standardFontDataUrl = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`;
+        } catch (e) {
+          console.warn('Could not set optional PDF.js resources:', e);
         }
 
-        resolve(fullText.trim());
+        const loadingTask = pdfjsLib.getDocument(loadingOptions);
+
+        const pdf = await loadingTask.promise;
+        
+        if (!pdf || pdf.numPages === 0) {
+          throw new Error("PDF appears to be empty or corrupted.");
+        }
+
+        let fullText = '';
+        let extractedPages = 0;
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          try {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            
+            if (textContent && textContent.items && textContent.items.length > 0) {
+              const pageText = textContent.items
+                .map(item => {
+                  if (item && typeof item === 'object' && 'str' in item) {
+                    return item.str;
+                  }
+                  return '';
+                })
+                .filter(text => text && text.trim().length > 0)
+                .join(' ');
+              
+              if (pageText.trim().length > 0) {
+                fullText += pageText + '\n\n';
+                extractedPages++;
+              }
+            }
+          } catch (pageError) {
+            console.warn(`Error extracting text from page ${i}:`, pageError);
+            // Continue with other pages
+          }
+        }
+
+        if (extractedPages === 0) {
+          throw new Error("No text could be extracted from any page. This might be a scanned PDF or image-based document.");
+        }
+
+        const cleanedText = fullText.trim();
+        if (cleanedText.length < 50) {
+          throw new Error("Extracted text is too short. This might be a scanned PDF or the document contains mostly images.");
+        }
+
+        resolve(cleanedText);
       } catch (error) {
         console.error("Error parsing PDF:", error);
-        reject(new Error("Could not parse the PDF file. It might be corrupted or in an unsupported format."));
+        
+        // Provide more specific error messages
+        if (error.name === 'InvalidPDFException') {
+          reject(new Error("Invalid PDF file. The file might be corrupted or not a valid PDF."));
+        } else if (error.name === 'MissingPDFException') {
+          reject(new Error("PDF file is missing or empty."));
+        } else if (error.name === 'UnexpectedResponseException') {
+          reject(new Error("Unexpected response from PDF parser. The file might be corrupted."));
+        } else if (error.message.includes('password')) {
+          reject(new Error("Password-protected PDFs are not supported. Please upload an unprotected PDF."));
+        } else if (error.message.includes('worker')) {
+          reject(new Error("PDF processing service is temporarily unavailable. Please try again or use manual text input."));
+        } else {
+          reject(new Error(`Could not parse the PDF file: ${error.message}. Please try uploading a different PDF or use manual text input.`));
+        }
       }
     };
 
