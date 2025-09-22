@@ -253,10 +253,21 @@ ${analysisResult.recommendations.map((r: any, i: number) =>
               <Alert className="max-w-2xl mx-auto mb-8">
                 <Settings className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Note:</strong> For enhanced AI analysis, set your <code>VITE_GEMINI_API_KEY</code> environment variable. 
+                  <strong>⚠️ Basic Analysis Mode:</strong> You're currently using basic keyword analysis. 
+                  For <strong>real AI-powered analysis</strong> with Gemini, set your <code>VITE_GEMINI_API_KEY</code> environment variable. 
                   Get your free API key from <a href="https://makersuite.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="underline text-primary">Google AI Studio</a>.
                   <br />
-                  <em>The analyzer will work with basic analysis even without the API key.</em>
+                  <em>Current mode: Basic keyword matching and section analysis</em>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {import.meta.env.VITE_GEMINI_API_KEY && (
+              <Alert className="max-w-2xl mx-auto mb-8 border-green-200 bg-green-50">
+                <Brain className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  <strong>✅ AI Analysis Enabled:</strong> You're using real Gemini AI for comprehensive resume analysis. 
+                  This provides detailed feedback, personalized recommendations, and intelligent insights.
                 </AlertDescription>
               </Alert>
             )}

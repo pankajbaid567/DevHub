@@ -105,6 +105,19 @@ const ResumeAnalysisResults: React.FC<ResumeAnalysisResultsProps> = ({
         <p className="text-muted-foreground">
           Comprehensive analysis of <span className="font-medium">{fileName}</span>
         </p>
+        
+        {/* Analysis Mode Indicator */}
+        {import.meta.env.VITE_GEMINI_API_KEY ? (
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-200">
+            <Brain className="w-4 h-4" />
+            AI-Powered Analysis (Gemini)
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium border border-yellow-200">
+            <FileText className="w-4 h-4" />
+            Basic Analysis Mode
+          </div>
+        )}
       </div>
 
       {/* Overall Score Cards */}

@@ -4,19 +4,36 @@ class GeminiService {
   constructor() {
     // You'll need to set this in your environment variables
     this.apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    console.log('Gemini API Key Status:', this.apiKey ? 'Found' : 'Not found');
+    console.log('Environment variables:', {
+      VITE_GEMINI_API_KEY: this.apiKey ? 'Set' : 'Not set',
+      VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL ? 'Set' : 'Not set'
+    });
+    
     if (!this.apiKey) {
-      console.warn('Gemini API key not found. Using fallback analysis mode.');
+      console.warn('⚠️ Gemini API key not found. Using fallback analysis mode.');
+      console.warn('To enable real AI analysis, set VITE_GEMINI_API_KEY in your environment variables.');
+      console.warn('Get your free API key from: https://makersuite.google.com/app/apikey');
+    } else {
+      console.log('✅ Gemini API key found. Real AI analysis enabled.');
     }
     this.genAI = this.apiKey ? new GoogleGenerativeAI(this.apiKey) : null;
   }
 
   async analyzeResume(resumeText, targetRole = '', additionalComments = '') {
     if (!this.genAI) {
-      console.log('Using fallback analysis mode (no Gemini API key)');
+      console.log('🔄 Using fallback analysis mode (no Gemini API key)');
+      console.log('📝 Resume text length:', resumeText.length);
+      console.log('🎯 Target role:', targetRole);
       return this.getFallbackAnalysis(resumeText, targetRole, additionalComments);
     }
 
     try {
+      console.log('🤖 Using Gemini AI for real analysis...');
+      console.log('📝 Resume text length:', resumeText.length);
+      console.log('🎯 Target role:', targetRole);
+      console.log('💬 Additional comments:', additionalComments);
+      
       const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const prompt = `
@@ -73,18 +90,24 @@ class GeminiService {
       const response = await result.response;
       let text = response.text();
 
+      console.log('📄 Raw Gemini response received');
+      console.log('📏 Response length:', text.length);
+
       // Clean up the response text to extract JSON
       text = text.replace(/```json\s*/, '').replace(/```\s*$/, '').trim();
       
       try {
         const analysis = JSON.parse(text);
+        console.log('✅ Successfully parsed Gemini response');
+        console.log('📊 Analysis score:', analysis.overallScore);
         return analysis;
       } catch (parseError) {
-        console.error('Error parsing Gemini response:', parseError);
-        console.log('Raw response:', text);
+        console.error('❌ Error parsing Gemini response:', parseError);
+        console.log('📄 Raw response:', text.substring(0, 500) + '...');
         
         // Return a fallback structure if parsing fails
-        return this.getFallbackAnalysis(resumeText);
+        console.log('🔄 Falling back to enhanced analysis...');
+        return this.getFallbackAnalysis(resumeText, targetRole, additionalComments);
       }
 
     } catch (error) {
